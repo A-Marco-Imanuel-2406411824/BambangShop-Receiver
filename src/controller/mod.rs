@@ -1,4 +1,4 @@
-mod notification;
+pub mod notification;
 
 use rocket::fairing::AdHoc;
 
