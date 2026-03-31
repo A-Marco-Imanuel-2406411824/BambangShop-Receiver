@@ -85,5 +85,16 @@ This is the place for you to write reflections:
 ### Mandatory (Subscriber) Reflections
 
 #### Reflection Subscriber-1
+In this codebase, RwLock<Vec<Notification>> is necessary because the notifications list is shared global state that can be accessed by multiple threads at the same time. 
+The add() method writes to the vector, while list_all_as_string() only reads from it, so using RwLock allows multiple readers to access the list concurrently while still ensuring only one writer can modify it at a time. 
+This is useful because the repository is read-heavy, and RwLock gives better concurrency than a plain Mutex in that situation. We do not use Mutex because a Mutex<Vec<Notification>> would block all access whenever one thread holds the lock, even for read-only operations, which would reduce concurrency unnecessarily. 
+A Mutex would still be correct, but RwLock is a better fit here because it allows many reads at once and only restricts access when a write happens.
+
+In short: While a concurrent write poses a state integrity risk, a concurrent read doesn't as long as no thread is writing at the same time. 
+Rwlock allows for multiple readers while also prevents the Read-after-Write hazard, perfect for this read-heavy repository.
 
 #### Reflection Subscriber-2
+Rust does not allow us to mutate a static variable in the same easy way Java does because Rust is designed to guarantee memory safety and thread safety at compile time. 
+In this codebase, lazy_static is used to create global values such as the NOTIFICATIONS vector and other shared objects like the HTTP client and app config because these values need runtime initialization and must be available globally. 
+Unlike Java, Rust does not permit arbitrary mutable globals by default, since that could lead to data races or invalid access in multithreaded code. Instead, Rust requires shared mutable state to be wrapped in synchronization primitives like RwLock or Mutex, and lazy_static helps initialize such values safely exactly once when they are first used. 
+This is why Rust uses a safer, more explicit pattern rather than allowing direct static mutation like Java.
